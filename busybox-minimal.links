@@ -54,6 +54,7 @@
 /bin/groups
 /bin/gunzip
 /bin/gzip
+/bin/hdparm
 /bin/head
 /bin/hexdump
 /bin/id

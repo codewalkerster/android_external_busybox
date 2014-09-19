@@ -70,6 +70,7 @@
 /bin/gunzip
 /bin/gzip
 /sbin/halt
+/bin/hdparm
 /bin/head
 /bin/hexdump
 /bin/id
