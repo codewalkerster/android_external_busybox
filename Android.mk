@@ -236,8 +236,29 @@ LOCAL_MODULE_STEM := busybox
 LOCAL_MODULE_TAGS := optional
 LOCAL_STATIC_LIBRARIES := libclearsilverregex libc libcutils libm libuclibcrpc libselinux
 LOCAL_MODULE_CLASS := EXECUTABLES
-LOCAL_MODULE_PATH := $(PRODUCT_OUT)/utilities
+LOCAL_MODULE_PATH := $(PRODUCT_OUT)/utilities/$(LOCAL_MODULE_STEM)/bin
 LOCAL_UNSTRIPPED_PATH := $(PRODUCT_OUT)/symbols/utilities
 #$(LOCAL_MODULE): busybox_prepare
 LOCAL_ADDITIONAL_DEPENDENCIES := $(busybox_prepare_full)
 include $(BUILD_EXECUTABLE)
+
+$(LOCAL_MODULE_PATH):
+	@mkdir -p $@
+
+BUSYBOX_LINKS := $(shell cat $(BB_PATH)/busybox-$(BUSYBOX_CONFIG).links)
+# nc is provided by external/netcat
+exclude := nc which
+SYMLINKS := $(addprefix $(LOCAL_MODULE_PATH)/,$(filter-out $(exclude),$(notdir $(BUSYBOX_LINKS))))
+$(SYMLINKS): BUSYBOX_BINARY := $(LOCAL_MODULE_STEM)
+$(SYMLINKS): $(LOCAL_INSTALLED_MODULE) $(LOCAL_MODULE_PATH)
+	@echo -e ${CL_CYN}"Symlink:"${CL_RST}" $@ -> $(BUSYBOX_BINARY)"
+	@mkdir -p $(dir $@)
+	@rm -rf $@
+	$(hide) ln -sf $(BUSYBOX_BINARY) $@
+
+ALL_DEFAULT_INSTALLED_MODULES += $(SYMLINKS)
+
+# We need this so that the installed files could be picked up based on the
+# local module name
+ALL_MODULES.$(LOCAL_MODULE).INSTALLED := \
+    $(ALL_MODULES.$(LOCAL_MODULE).INSTALLED) $(SYMLINKS)
