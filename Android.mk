@@ -203,37 +203,30 @@ LOCAL_MODULE_STEM := busybox
 LOCAL_MODULE_TAGS := optional
 LOCAL_STATIC_LIBRARIES := libclearsilverregex libc libcutils libm libuclibcrpc libselinux
 LOCAL_MODULE_CLASS := UTILITY_EXECUTABLES
-LOCAL_MODULE_PATH := $(PRODUCT_OUT)/utilities
+LOCAL_MODULE_PATH := $(PRODUCT_OUT)/utilities/$(LOCAL_MODULE_STEM)/bin
 LOCAL_UNSTRIPPED_PATH := $(PRODUCT_OUT)/symbols/utilities
 LOCAL_ADDITIONAL_DEPENDENCIES := $(busybox_prepare_full)
 LOCAL_PACK_MODULE_RELOCATIONS := false
 LOCAL_CLANG := false
 include $(BUILD_EXECUTABLE)
 
-include $(CLEAR_VARS)
+$(LOCAL_MODULE_PATH):
+	@mkdir -p $@
 
-BUSYBOX_CONFIG := minimal
-BUSYBOX_SUFFIX := static_min
-LOCAL_SRC_FILES := $(BUSYBOX_SRC_FILES)
-LOCAL_C_INCLUDES := $(bb_gen)/minimal/include $(BUSYBOX_C_INCLUDES)
-LOCAL_CFLAGS := $(BUSYBOX_CFLAGS)
-LOCAL_CFLAGS += \
-  -Dgetusershell=busybox_getusershell \
-  -Dsetusershell=busybox_setusershell \
-  -Dendusershell=busybox_endusershell \
-  -Dgetmntent=busybox_getmntent \
-  -Dgetmntent_r=busybox_getmntent_r \
-  -Dgenerate_uuid=busybox_generate_uuid
-LOCAL_ASFLAGS := $(BUSYBOX_AFLAGS)
-LOCAL_FORCE_STATIC_EXECUTABLE := true
-LOCAL_MODULE := static_min_busybox
-LOCAL_MODULE_STEM := busyboxmin
-LOCAL_MODULE_TAGS := optional
-LOCAL_STATIC_LIBRARIES := libclearsilverregex libc libcutils libm libuclibcrpc libselinux
-LOCAL_MODULE_CLASS := UTILITY_EXECUTABLES
-LOCAL_MODULE_PATH := $(PRODUCT_OUT)/utilities
-LOCAL_UNSTRIPPED_PATH := $(PRODUCT_OUT)/symbols/utilities
-LOCAL_ADDITIONAL_DEPENDENCIES := $(busybox_prepare_minimal)
-LOCAL_PACK_MODULE_RELOCATIONS := false
-LOCAL_CLANG := false
-include $(BUILD_EXECUTABLE)
+BUSYBOX_LINKS := $(shell cat $(BB_PATH)/busybox-$(BUSYBOX_CONFIG).links)
+# nc is provided by external/netcat
+exclude := nc which
+SYMLINKS := $(addprefix $(LOCAL_MODULE_PATH)/,$(filter-out $(exclude),$(notdir $(BUSYBOX_LINKS))))
+$(SYMLINKS): BUSYBOX_BINARY := $(LOCAL_MODULE_STEM)
+$(SYMLINKS): $(LOCAL_INSTALLED_MODULE) $(LOCAL_MODULE_PATH)
+	@echo -e ${CL_CYN}"Symlink:"${CL_RST}" $@ -> $(BUSYBOX_BINARY)"
+	@mkdir -p $(dir $@)
+	@rm -rf $@
+	$(hide) ln -sf $(BUSYBOX_BINARY) $@
+
+ALL_DEFAULT_INSTALLED_MODULES += $(SYMLINKS)
+
+# We need this so that the installed files could be picked up based on the
+# local module name
+ALL_MODULES.$(LOCAL_MODULE).INSTALLED := \
+    $(ALL_MODULES.$(LOCAL_MODULE).INSTALLED) $(SYMLINKS)
