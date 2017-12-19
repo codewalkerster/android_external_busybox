@@ -153,21 +153,10 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
 LOCAL_SHARED_LIBRARIES := libc libcutils libm
 LOCAL_STATIC_LIBRARIES := libclearsilverregex libuclibcrpc libselinux
-LOCAL_ADDITIONAL_DEPENDENCIES := $(busybox_prepare_full) busybox_links
+LOCAL_ADDITIONAL_DEPENDENCIES := $(busybox_prepare_full)
 LOCAL_CLANG := false
 
 BUSYBOX_BINARY := $(LOCAL_MODULE)
-include $(BUILD_EXECUTABLE)
-
-# Symlinks
-
-LOCAL_PATH := $(BB_PATH)
-include $(CLEAR_VARS)
-
-LOCAL_MODULE := busybox_links
-LOCAL_MODULE_TAGS := optional
-
-# nc is provided by external/netcat
 BUSYBOX_EXCLUDE := nc
 
 BUSYBOX_LINKS := $(shell cat $(BB_PATH)/busybox-$(BUSYBOX_CONFIG).links)
@@ -176,8 +165,7 @@ BUSYBOX_SYMLINKS := $(filter-out $(BUSYBOX_EXCLUDE),$(notdir $(BUSYBOX_LINKS)))
 LOCAL_POST_INSTALL_CMD := \
     $(hide) mkdir -p $(TARGET_OUT_OPTIONAL_EXECUTABLES) && \
     $(foreach t,$(BUSYBOX_SYMLINKS),ln -sf $(BUSYBOX_BINARY) $(TARGET_OUT_OPTIONAL_EXECUTABLES)/$(t);)
-
-include $(BUILD_PHONY_PACKAGE)
+include $(BUILD_EXECUTABLE)
 
 # Static Busybox
 
@@ -203,28 +191,22 @@ LOCAL_MODULE_STEM := busybox
 LOCAL_MODULE_TAGS := optional
 LOCAL_STATIC_LIBRARIES := libclearsilverregex libc libcutils libm libuclibcrpc libselinux
 LOCAL_MODULE_CLASS := UTILITY_EXECUTABLES
-LOCAL_MODULE_PATH := $(PRODUCT_OUT)/utilities/$(LOCAL_MODULE_STEM)/bin
+LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/bin/
 LOCAL_UNSTRIPPED_PATH := $(PRODUCT_OUT)/symbols/utilities
 LOCAL_ADDITIONAL_DEPENDENCIES := $(busybox_prepare_full)
 LOCAL_PACK_MODULE_RELOCATIONS := false
 LOCAL_CLANG := false
-include $(BUILD_EXECUTABLE)
 
-$(LOCAL_MODULE_PATH):
-	@mkdir -p $@
+BUSYBOX_BINARY := $(LOCAL_MODULE_STEM)
+BUSYBOX_EXCLUDE := nc
 
 BUSYBOX_LINKS := $(shell cat $(BB_PATH)/busybox-$(BUSYBOX_CONFIG).links)
-# nc is provided by external/netcat
-exclude := nc which
-SYMLINKS := $(addprefix $(LOCAL_MODULE_PATH)/,$(filter-out $(exclude),$(notdir $(BUSYBOX_LINKS))))
-$(SYMLINKS): BUSYBOX_BINARY := $(LOCAL_MODULE_STEM)
-$(SYMLINKS): $(LOCAL_INSTALLED_MODULE) $(LOCAL_MODULE_PATH)
-	@echo -e ${CL_CYN}"Symlink:"${CL_RST}" $@ -> $(BUSYBOX_BINARY)"
-	@mkdir -p $(dir $@)
-	@rm -rf $@
-	$(hide) ln -sf $(BUSYBOX_BINARY) $@
+BUSYBOX_SYMLINKS := $(filter-out $(BUSYBOX_EXCLUDE), $(notdir $(BUSYBOX_LINKS)))
 
-ALL_DEFAULT_INSTALLED_MODULES += $(SYMLINKS)
+LOCAL_POST_INSTALL_CMD := \
+	$(hide) mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/bin && \
+	$(foreach t,$(BUSYBOX_SYMLINKS),ln -sf $(BUSYBOX_BINARY) $(TARGET_RECOVERY_ROOT_OUT)/bin/$(t);)
+include $(BUILD_EXECUTABLE)
 
 # We need this so that the installed files could be picked up based on the
 # local module name
